@@ -1711,7 +1711,7 @@ class getObs:
             ctd_Dict = None
         
         return ctd_Dict
-    
+
     def getALT(self, gaugeName=None, removeMasked=True):
         """This function gets the Altimeter data from the thredds server.
 
@@ -1751,17 +1751,21 @@ class getObs:
 
         """
         # location of the data
-        gauge_list = ['Alt03', 'Alt04', 'Alt05',
-                      'Alt769-150', 'Alt769-200', 'Alt769-250', 'Alt769-300', 'Alt769-350',
-                      'Alt861-150', 'Alt861-200', 'Alt861-250', 'Alt861-300', 'Alt861-350']
+        gauge_list = ['Alt769-150', 'Alt769-200', 'Alt769-250', 'Alt769-300', 'Alt769-350',
+                      'Alt861-150', 'Alt861-200', 'Alt861-250', 'Alt861-300', 'Alt861-350',
+                      'Alt940-150', 'Alt940-200', 'Alt940-250', 'Alt940-300', 'Alt940-340']
         if gaugeName not in gauge_list:
             raise NotImplementedError('Input string is not a valid gage name, please check')
-        if gaugeName in ['Alt05']:
-            self.dataloc = 'geomorphology/altimeter/Alt05-altimeter/Alt05-altimeter.ncml'
-        elif gaugeName in ['Alt04']:
-            self.dataloc = 'geomorphology/altimeter/Alt04-altimeter/Alt04-altimeter.ncml'
-        elif gaugeName in ['Alt03']:
-            self.dataloc = 'geomorphology/altimeter/Alt03-altimeter/Alt03-altimeter.ncml'
+        elif gaugeName in ['Alt940-150']:
+            self.dataloc = 'geomorphology/altimeter/Alt769-150-altimeter/Alt769-150-altimeter.ncml'
+        elif gaugeName in ['Alt940-200']:
+            self.dataloc = 'geomorphology/altimeter/Alt769-200-altimeter/Alt769-200-altimeter.ncml'
+        elif gaugeName in ['Alt940-250']:
+            self.dataloc = 'geomorphology/altimeter/Alt769-250-altimeter/Alt769-250-altimeter.ncml'
+        elif gaugeName in ['Alt940-300']:
+            self.dataloc = 'geomorphology/altimeter/Alt769-300-altimeter/Alt769-300-altimeter.ncml'
+        elif gaugeName in ['Alt940-340']:
+            self.dataloc = 'geomorphology/altimeter/Alt769-350-altimeter/Alt769-350-altimeter.ncml'
         elif gaugeName in ['Alt769-150']:
             self.dataloc = 'geomorphology/altimeter/Alt769-150-altimeter/Alt769-150-altimeter.ncml'
         elif gaugeName in ['Alt769-200']:
@@ -1784,12 +1788,12 @@ class getObs:
             self.dataloc = 'geomorphology/altimeter/Alt769-350-altimeter/Alt769-350-altimeter.ncml'
         else:
             raise NotImplementedError('Please use one of the following keys\n'.format(gauge_list))
-        
+
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
                                            dtRound=1 * 60)
         altdataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
                                epochEnd=self.epochd2)
-        
+
         # get the actual current data
         if np.size(altdataindex) > 1:
             alt_lat = self.ncfile['Latitude'][0]  # pulling latitude
@@ -1810,41 +1814,41 @@ class getObs:
                 self.alt_time[num] = self._roundtime(self.alt_time[num], roundto=1 * 60)
                 self.alt_timestart[num] = self._roundtime(self.alt_timestart[num], roundto=1 * 60)
                 self.alt_timeend[num] = self._roundtime(self.alt_timeend[num], roundto=1 * 60)
-            
+
             alt_coords = gp.FRFcoord(alt_lon, alt_lat)
-            
+
             if removeMasked:
-                altpacket = {'name':        str(self.ncfile.title),
-                             'time':        np.array(self.alt_time[~alt_be.mask]),
-                             'epochtime':   np.array(self.allEpoch[altdataindex][~alt_be.mask]),
-                             'lat':         alt_lat,
-                             'PKF':         np.array(alt_pkf[~alt_be.mask]),
-                             'lon':         alt_lon,
-                             'xFRF':        alt_coords['xFRF'],
-                             'yFRF':        alt_coords['yFRF'],
+                altpacket = {'name': str(self.ncfile.title),
+                             'time': np.array(self.alt_time[~alt_be.mask]),
+                             'epochtime': np.array(self.allEpoch[altdataindex][~alt_be.mask]),
+                             'lat': alt_lat,
+                             'PKF': np.array(alt_pkf[~alt_be.mask]),
+                             'lon': alt_lon,
+                             'xFRF': alt_coords['xFRF'],
+                             'yFRF': alt_coords['yFRF'],
                              'stationName': alt_stationname,
-                             'timeStart':   np.array(self.alt_timestart[~alt_be.mask]),
-                             'timeEnd':     np.array(self.alt_timeend[~alt_be.mask]),
-                             'bottomElev':  np.array(alt_be[~alt_be.mask])}
+                             'timeStart': np.array(self.alt_timestart[~alt_be.mask]),
+                             'timeEnd': np.array(self.alt_timeend[~alt_be.mask]),
+                             'bottomElev': np.array(alt_be[~alt_be.mask])}
             else:
-                altpacket = {'name':        str(self.ncfile.title),
-                             'time':        self.alt_time,
-                             'lat':         alt_lat,
-                             'PKF':         alt_pkf,
-                             'lon':         alt_lon,
-                             'xFRF':        alt_coords['xFRF'],
-                             'yFRF':        alt_coords['yFRF'],
+                altpacket = {'name': str(self.ncfile.title),
+                             'time': self.alt_time,
+                             'lat': alt_lat,
+                             'PKF': alt_pkf,
+                             'lon': alt_lon,
+                             'xFRF': alt_coords['xFRF'],
+                             'yFRF': alt_coords['yFRF'],
                              'stationName': alt_stationname,
-                             'timeStart':   self.alt_timestart,
-                             'timeEnd':     self.alt_timeend,
-                             'bottomElev':  alt_be}
-            
+                             'timeStart': self.alt_timestart,
+                             'timeEnd': self.alt_timeend,
+                             'bottomElev': alt_be}
+
             return altpacket
         else:
             print('No %s data found for this period' % (gaugeName))
             self.altpacket = None
             return self.altpacket
-    
+
     def getLidarWaveProf(self, removeMasked=True):
         """Grabs wave profile data from Lidar gauge.
 
