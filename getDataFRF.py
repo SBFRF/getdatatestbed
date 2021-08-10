@@ -1757,15 +1757,15 @@ class getObs:
         if gaugeName not in gauge_list:
             raise NotImplementedError('Input string is not a valid gage name, please check')
         elif gaugeName in ['Alt940-150']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-150-altimeter/Alt769-150-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt940-150-altimeter/Alt940-150-altimeter.ncml'
         elif gaugeName in ['Alt940-200']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-200-altimeter/Alt769-200-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt940-200-altimeter/Alt940-200-altimeter.ncml'
         elif gaugeName in ['Alt940-250']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-250-altimeter/Alt769-250-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt940-250-altimeter/Alt940-250-altimeter.ncml'
         elif gaugeName in ['Alt940-300']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-300-altimeter/Alt769-300-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt940-300-altimeter/Alt940-300-altimeter.ncml'
         elif gaugeName in ['Alt940-340']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-350-altimeter/Alt769-350-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt940-350-altimeter/Alt940-350-altimeter.ncml'
         elif gaugeName in ['Alt769-150']:
             self.dataloc = 'geomorphology/altimeter/Alt769-150-altimeter/Alt769-150-altimeter.ncml'
         elif gaugeName in ['Alt769-200']:
@@ -1781,11 +1781,11 @@ class getObs:
         elif gaugeName in ['Alt861-200']:
             self.dataloc = 'geomorphology/altimeter/Alt861-200-altimeter/Alt861-200-altimeter.ncml'
         elif gaugeName in ['Alt861-250']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-250-altimeter/Alt769-250-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt861-250-altimeter/Alt861-250-altimeter.ncml'
         elif gaugeName in ['Alt861-300']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-300-altimeter/Alt769-300-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt861-300-altimeter/Alt861-300-altimeter.ncml'
         elif gaugeName in ['Alt861-350']:
-            self.dataloc = 'geomorphology/altimeter/Alt769-350-altimeter/Alt769-350-altimeter.ncml'
+            self.dataloc = 'geomorphology/altimeter/Alt861-350-altimeter/Alt861-350-altimeter.ncml'
         else:
             raise NotImplementedError('Please use one of the following keys\n'.format(gauge_list))
 
