@@ -95,8 +95,6 @@ def getnc(dataLoc, callingClass, epoch1=0,epoch2=0, dtRound=60, cutrange=100000,
     if callingClass == 'getDataTestBed':  # overwrite pName if calling for model data
         pName = u'cmtb'
 
-    #import pdb
-    #pdb.set_trace()
     # now set URL for netCDF file call,
     if start is None and end is None:
         ncfileURL = urljoin('[FillMismatch]'+THREDDSloc, pName, dataLoc)
@@ -1002,14 +1000,10 @@ class getObs:
             profileNum = self.ncfile['profileNumber'][idx]
             surveyNum = self.ncfile['surveyNumber'][idx]
             Ellipsoid = self.ncfile['Ellipsoid'][idx]
-<<<<<<< HEAD
+
             epochTime = self.ncfile['time'][idx]
             time = nc.num2date(epochTime, self.ncfile['time'].units,
                                only_use_cftime_datetimes=False)
-=======
-            time = nc.num2date(self.ncfile['time'][idx], self.ncfile['time'].units, only_use_cftime_datetimes=False)
-
->>>>>>> development
             
             profileDict = {'xFRF':          xCoord,
                            'yFRF':          yCoord,
