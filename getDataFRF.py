@@ -1973,7 +1973,13 @@ class getObs:
 
         """
         lidarLoc = kwargs.get('lidarLoc', 'dune')
-    
+        #mwf trying to set for lidar
+        assert lidarLoc in ['dune','pier']
+        if lidarLoc == 'pier':
+            self.dataloc= 'geomorphology/DEMs/pierLidarDEM/pierLidarDEM.ncml'
+        else:
+            self.dataloc='geomorphology/DEMs/duneLidarDEM/duneLidarDEM.ncml'
+        
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
                                            dtRound=1 * 60)
         self.idxDEM = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1, epochEnd=self.epochd2)
