@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Setup tools for getDataTestBed."""
 from setuptools import setup
 
 setup(name='GetDataTestbed',
@@ -7,5 +7,5 @@ setup(name='GetDataTestbed',
                    'Field Research Facility Coastal Model Test Bed' +
                    '(CMTB)'),
       author='Spicer Bak',
-      modules=['getDataFRF', 'getOutsideData', 'download_grid_data'],
+      modules=['getDataFRF', 'getOutsideData'],
      )

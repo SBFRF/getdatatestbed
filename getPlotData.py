@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""This is a class definition has something to do with getting plot data, it is unclear where or how it is used.
+
+@author: David Young
+@organization: USACE CHL FRF
+"""
 from .getDataFRF import getObs
 from testbedutils.anglesLib import vectorRotation
 import datetime as DT
@@ -7,9 +13,10 @@ import testbedutils.sblib as sb
 import netCDF4 as nc
 
 def alt_PlotData(name, mod_time, mod_times, THREDDS='FRF'):
-    """This function is just to remove clutter in my plot functions
-    all it does is pull out altimeter data and put it into the appropriate dictionary keys.
-    If None, it will return masked arrays.
+    """This function is just to remove clutter in my plot functions.
+    
+    All it does is pull out altimeter data and put it into the appropriate dictionary keys. If None, it will return
+    masked arrays.
 
     Args:
         name: name of the altimeter you want (Alt03, Alt04, Alt05)
@@ -58,25 +65,26 @@ def alt_PlotData(name, mod_time, mod_times, THREDDS='FRF'):
     return dict
 
 def wave_PlotData(name, mod_time, time, THREDDS='FRF'):
-    """
-    This function is just to remove clutter in my plotting scripts
-    all it does is pull out altimeter data and put it into the appropriate dictionary keys.
+    """This function is just to remove clutter in my plotting scripts.
+    
+    All it does is pull out altimeter data and put it into the appropriate dictionary keys.
     If None, it will return masked arrays.
 
-    :param t1: start time you want to pull (a datetime, not a string)
-    :param t2: end time you want to pull (a datetime, not a string)
-    :param name: name of the wave gage you want
-    :param mod_time: start time of the model
-    :param time: array of model datetimes
+    Args:
+         t1: start time you want to pull (a datetime, not a string)
+         t2: end time you want to pull (a datetime, not a string)
+         name: name of the wave gage you want
+         mod_time: start time of the model
+         time: array of model datetimes
 
-    :return: Altimeter data dictionary with keys:
+    Returns:
+        Altimeter data dictionary with keys:
             'Hs' - significant wave height
             'name' - gage name
             'wave_time' - timestamps of the data
             'xFRF' - position of the gage
             'plot_ind' - this just tells it which data point it should plot for the snapshots
     """
-
     t1 = time[0] - DT.timedelta(days=0, hours=0, minutes=3)
     t2 = time[-1] + DT.timedelta(days=0, hours=0, minutes=3)
 
@@ -122,12 +130,20 @@ def wave_PlotData(name, mod_time, time, THREDDS='FRF'):
 
     return dict
 
-def lidar_PlotData(time, THREDDS='FRF'):
+def lidar_PlotData(time):
+    """Lidar plot data.
+    
+    Args:
+        time: input time in time delta format
 
+    Returns:
+        output dictionary
+
+    """
     t1 = time[0] - DT.timedelta(days=0, hours=0, minutes=3)
     t2 = time[-1] + DT.timedelta(days=0, hours=0, minutes=3)
 
-    frf_Data = getObs(t1, t2, THREDDS)
+    frf_Data = getObs(t1, t2)
 
     try:
         dict = {}
@@ -160,9 +176,10 @@ def lidar_PlotData(time, THREDDS='FRF'):
     return dict
 
 def CMSF_velData(cmsfDict, station, dThresh=None):
-    """this is a little function I wrote that will do the heavy lifting of pulling the current data from a particular gage,
-        finds the closest model node to that gage, time matches the data, and returns the variables that need to be
-        handed to obsVmod_TS to make pretty plots.
+    """This is a little function I wrote that will do the heavy lifting.
+    
+    Pulling the current data from a particular gauge, finds the closest model node to that gauge, time matches the
+    data, and returns the variables that need to be handed to obsVmod_TS to make pretty plots.
 
     Args:
         cmsfDict: keys (that are used...):
@@ -219,18 +236,22 @@ def CMSF_velData(cmsfDict, station, dThresh=None):
     return out
 
 def CMSF_wlData(cmsfDict, station, dThresh=None):
-    """
-    this is a little function I wrote that will do the heavy lifting of pulling the wl data from a particular gage,
-    finds the closest model node to that gage, time matches the data, and returns the variables that need to be
+    """This is a little function I wrote that will do the heavy lifting of pulling the wl data from a particular gauge.
+
+    Finds the closest model node to that gage, time matches the data, and returns the variables that need to be
     handed to obsVmod_TS to make pretty plots.
-    :param cmsfDict: keys (that are used...):
+    Args:
+         cmsfDict: keys (that are used...):
                     'time' - this needs to be in epochtime
                     'waterLevel' - water level from the CSMF model
-    :param station: this is the stationname that will get handed to getGageWL, a gagenumber would (should?) also work
-    :return: dictionary with keys:
+         station: this is the stationname that will get handed to getGageWL, a gagenumber would (should?) also work
+    
+    Returns:
+        dictionary with keys:
              'time' - epochtimes of the matched data
              'obsWL' - time-matched observed eastward velocity
              'modWL' - time-matched model northward velocity
+             
     """
     # initialize this class
     timeunits = 'seconds since 1970-01-01 00:00:00'
