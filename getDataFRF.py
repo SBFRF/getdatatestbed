@@ -1307,7 +1307,8 @@ class getObs:
             self.dataloc = 'oceanography/waves/8m-array/8m-array.ncml'
         elif str(gaugenumber).lower() in ['sig940-300', '940-300']:
             self.dataloc = 'oceanography/waves/sig940-300/sig940-300.ncml'
-        elif str(gaugenumber).lower() in ['sig769-300', '769-300']
+        elif str(gaugenumber).lower() in ['sig769-300', '769-300']:
+            self.dataloc = 'oceanography/waves/sig769-300/sig769-300.ncml'
         elif str(gaugenumber).lower() in ['paros-200-940m']:
             self.dataloc = 'oceanography/waves/paros-200-940m/paros-200-940m.ncml'
         elif str(gaugenumber).lower() in ['paros-250-940m']:
