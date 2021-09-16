@@ -952,10 +952,11 @@ class getObs:
             idx = np.argwhere(
                 self.ncfile['surveyNumber'][indexRef[0]:indexRef[1]] == self.ncfile['surveyNumber'][idxSingle]).squeeze() + indexRef[0]
             if np.size(idx) == 0:
-                print('The closest in history to your start date is %s\n' % nc.num2date(
-                    self.gridTime[idx],
-                    self.ncfile['time'].units))
-                raise NotImplementedError('Please End new simulation with the date above')
+                #mwf fails
+                #print('The closest in history to your start date is %s\n' % nc.num2date(
+                #    self.gridTime[idx],
+                #    self.ncfile['time'].units))
+                raise NotImplementedError('empty index')
                 idx = self.bathydataindex
         
         # else:
@@ -2042,9 +2043,15 @@ class getObs:
 
         """
         lidarLoc = kwargs.get('lidarLoc', 'dune')
-    
+        #mwf trying to set for lidar
+        assert lidarLoc in ['dune','pier']
+        if lidarLoc == 'pier':
+            self.dataloc= 'geomorphology/DEMs/pierLidarDEM/pierLidarDEM.ncml'
+        else:
+            self.dataloc='geomorphology/DEMs/duneLidarDEM/duneLidarDEM.ncml'
+        
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=1 * 60)
+                                           dtRound=1 * 60, server=self.server)
         self.idxDEM = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1, epochEnd=self.epochd2)
         self.DEMtime = nc.num2date(self.allEpoch[self.idxDEM], 'seconds since 1970-01-01',
                                    only_use_cftime_datetimes=False)
