@@ -48,7 +48,7 @@ def gettime(allEpoch, epochStart, epochEnd, indexRef=0):
     finally:
         return idx
 
-def getnc(dataLoc, callingClass, epoch1=0,epoch2=0, dtRound=60, cutrange=100000,**kwargs):
+def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000,**kwargs):
     """Function grabs the netCDF file interested.
     
     Responsible for drilling down to specific monthly file if applicable to speed things up.
@@ -80,7 +80,7 @@ def getnc(dataLoc, callingClass, epoch1=0,epoch2=0, dtRound=60, cutrange=100000,
     # chose which server to select based on IP
     try:
         ipAddress = socket.gethostbyname(socket.gethostname())
-        if server == 'FRF' and ipAddress.startswith('134.164') or ipAddress.startswith('10.0.0'):  # FRF subdomain
+        if (server == 'FRF' or server is None) and (ipAddress.startswith('134.164') or ipAddress.startswith('10.0.0')):  # FRF subdomain
             THREDDSloc = FRFdataloc
             pName = u'FRF'
         elif server in ['CHL', 'chl', None]:
@@ -136,17 +136,24 @@ def getnc(dataLoc, callingClass, epoch1=0,epoch2=0, dtRound=60, cutrange=100000,
         try:
             ncFile = nc.Dataset(ncfileURL)  # get the netCDF file
             tt = ncFile['time']
-            if epoch1 ==0 and epoch2 == 0:
+            if epoch1 == 0 and epoch2 == 0:
                 idts = [0,tt.shape[0]]
                 res1 = 0
                 res2 = 1
+                indexRef = [idts[res1], idts[res2]]  # define a refined time window to return
+                allEpoch = ncFile['time'][idts[res1]:idts[res2]]
             else:
                 idts = np.arange(0, tt.shape[0], cutrange)
-                temp = tt[idts]
-                res1 = np.min([idx for idx, val in enumerate(temp) if val > epoch1]) - 1
-                res2 = np.max([idx for idx, val in enumerate(temp) if val < epoch2]) + 1
-            indexRef = [idts[res1],idts[res2]]
-            allEpoch = ncFile['time'][idts[res1]:idts[res2]]
+                temp = tt[idts]  # pull times that are stepped by cutrange
+                # now search across those times
+                if np.argwhere(temp > epoch1).any():
+                    res1 = np.min([idx for idx, val in enumerate(temp) if val > epoch1]) - 1
+                    res2 = np.max([idx for idx, val in enumerate(temp) if val < epoch2]) + 1
+                    indexRef = [idts[res1], idts[res2]]  # define a refined time window to return
+                    allEpoch = ncFile['time'][idts[res1]:idts[res2]]
+                else:  # there is no relevant data in my window, take the last "cutrange" of values
+                    indexRef = [-cutrange, len(tt)]
+                    allEpoch = ncFile['time'][-cutrange: len(tt)]
             finished = True
         except IOError:
             print('Error reading {}, trying again {}/{}'.format(ncfileURL, n + 1, maxTries))
@@ -2048,15 +2055,14 @@ class getObs:
         assert lidarLoc in ['dune','pier']
         if lidarLoc == 'pier':
             self.dataloc= 'geomorphology/DEMs/pierLidarDEM/pierLidarDEM.ncml'
-        else:
+        elif lidarLoc in ['dune']:
             self.dataloc='geomorphology/DEMs/duneLidarDEM/duneLidarDEM.ncml'
-        
+        else:
+            raise NotImplementedError('need to use ["dune", "pier"')
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
                                            dtRound=1 * 60, server=self.server)
         self.idxDEM = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1, epochEnd=self.epochd2)
-        self.DEMtime = nc.num2date(self.allEpoch[self.idxDEM], 'seconds since 1970-01-01',
-                                   only_use_cftime_datetimes=False)
-      
+
         if self.idxDEM is None:
             try:
                 print(" last data point before your time {} DEM is {}".format(lidarLoc, nc.num2date(self.allEpoch[
