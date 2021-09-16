@@ -2005,7 +2005,7 @@ class getObs:
             self.dataloc='geomorphology/DEMs/duneLidarDEM/duneLidarDEM.ncml'
         
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=1 * 60)
+                                           dtRound=1 * 60, server=self.server)
         self.idxDEM = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1, epochEnd=self.epochd2)
         self.DEMtime = nc.num2date(self.allEpoch[self.idxDEM], 'seconds since 1970-01-01',
                                    only_use_cftime_datetimes=False)
