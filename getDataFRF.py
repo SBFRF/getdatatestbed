@@ -278,6 +278,7 @@ class getObs:
         Args:
           gaugenumber: wave gauge numbers pulled from self.waveGaugeURLlookup
                see help on self.waveGaugeURLlookup for possible gauge names (Default value = 0)
+               gaugenumber can also be a list
           roundto: this is duration in minutes which data are expected.  times are rounded to nearest
              30 minute increment (data on server are not even times) (Default value = 30)
           removeBadDataFlag (int): this will remove data with a directional flag of 3/4 signaling questionable or
@@ -318,136 +319,146 @@ class getObs:
         returnAB = kwargs.get('returnAB', False)
         spec = kwargs.get('spec', False)
         # Making gauges flexible
-        self._waveGaugeURLlookup(gaugenumber)
-        # parsing out data of interest in time
-        self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=roundto * 60, start=self.d1, end=self.d2, server=self.server)
-        try:
-            self.wavedataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
-                                         epochEnd=self.epochd2)
-            assert np.array(self.wavedataindex).all() is not None, 'there''s no data in your time period'
+        single_gauge = False
+        if not isinstance(gaugenumber, list):
+            single_gauge = True
+            gaugenumber = [gaugenumber]
+        wavespec_list = []
+        for i in range(len(gaugenumber)):
+            gaugename = gaugenumber[i]
+            print(gaugename)
+            self._waveGaugeURLlookup(gaugename)
+            # parsing out data of interest in time
+            self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
+                                               dtRound=roundto * 60, start=self.d1, end=self.d2, server=self.server)
+            try:
+                self.wavedataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
+                                             epochEnd=self.epochd2)
+                assert np.array(self.wavedataindex).all() is not None, 'there''s no data in your time period'
 
-            if np.size(self.wavedataindex) >= 1:
-                # consistant for all wave gauges
-                if np.size(self.wavedataindex) == 1:
-                    self.wavedataindex = np.expand_dims(self.wavedataindex, axis=0)
-                self.snaptime = nc.num2date(self.allEpoch[self.wavedataindex],
-                                            self.ncfile['time'].units,
-                                            only_use_cftime_datetimes=False)
-                try:
-                    depth = self.ncfile['nominalDepth'][:]  # this should always go
-                except IndexError:
+                if np.size(self.wavedataindex) >= 1:
+                    # consistant for all wave gauges
+                    if np.size(self.wavedataindex) == 1:
+                        self.wavedataindex = np.expand_dims(self.wavedataindex, axis=0)
+                    self.snaptime = nc.num2date(self.allEpoch[self.wavedataindex],
+                                                self.ncfile['time'].units,
+                                                only_use_cftime_datetimes=False)
                     try:
-                        depth = self.ncfile['gaugeDepth'][:]  # non directionalWaveGaugeList gauges
+                        depth = self.ncfile['nominalDepth'][:]  # this should always go
                     except IndexError:
-                        depth = -999  # fill value
-                try:
-                    wave_coords = gp.FRFcoord(self.ncfile['longitude'][:],
-                                              self.ncfile['latitude'][:])
-                except IndexError:
-                    wave_coords = gp.FRFcoord(self.ncfile['lon'][:], self.ncfile['lat'][:])
-                #######################################################################################################
-                # now that wave data index is resolved, go get data
-                self.snaptime = nc.num2date(self.allEpoch[self.wavedataindex],
-                                            self.ncfile['time'].units,
-                                            only_use_cftime_datetimes=False)
-                wavespec = {'time':        self.snaptime,  # note this is new variable names??
-                            'epochtime':   self.allEpoch[self.wavedataindex],
-                            'name':        str(self.ncfile.title),
-                            'wavefreqbin': self.ncfile['waveFrequency'][:],
-                            'xFRF':        wave_coords['xFRF'],
-                            'yFRF':        wave_coords['yFRF'],
-                            'lat':         self.ncfile['latitude'][:],
-                            'lon':         self.ncfile['longitude'][:],
-                            'depth':       depth,
-                            'Hs':          self.ncfile['waveHs'][self.wavedataindex],
-                            'peakf':       1 / self.ncfile['waveTp'][self.wavedataindex],
-                }
-                wavespec['units'] = {'Hs':self.ncfile['waveHs'].units,'peakf':'Hz','wavefreqbin':'Hz'}
+                        try:
+                            depth = self.ncfile['gaugeDepth'][:]  # non directionalWaveGaugeList gauges
+                        except IndexError:
+                            depth = -999  # fill value
+                    try:
+                        wave_coords = gp.FRFcoord(self.ncfile['longitude'][:],
+                                                  self.ncfile['latitude'][:])
+                    except IndexError:
+                        wave_coords = gp.FRFcoord(self.ncfile['lon'][:], self.ncfile['lat'][:])
+                    #######################################################################################################
+                    # now that wave data index is resolved, go get data
+                    self.snaptime = nc.num2date(self.allEpoch[self.wavedataindex],
+                                                self.ncfile['time'].units,
+                                                only_use_cftime_datetimes=False)
+                    wavespec = {'time':        self.snaptime,  # note this is new variable names??
+                                'epochtime':   self.allEpoch[self.wavedataindex],
+                                'name':        str(self.ncfile.title),
+                                'wavefreqbin': self.ncfile['waveFrequency'][:],
+                                'xFRF':        wave_coords['xFRF'],
+                                'yFRF':        wave_coords['yFRF'],
+                                'lat':         self.ncfile['latitude'][:],
+                                'lon':         self.ncfile['longitude'][:],
+                                'depth':       depth,
+                                'Hs':          self.ncfile['waveHs'][self.wavedataindex],
+                                'peakf':       1 / self.ncfile['waveTp'][self.wavedataindex],
+                    }
+                    wavespec['units'] = {'Hs':self.ncfile['waveHs'].units,'peakf':'Hz','wavefreqbin':'Hz'}
 
-                # now do directionalWaveGaugeList gauge try
-                try:  # pull time specific data based on self.wavedataindex
-                    wavespec['depth'] = self.ncfile['nominalDepth'][:]  # this should always go with directional gauges
-                    wavespec['wavedirbin'] = self.ncfile['waveDirectionBins'][:]
-                    wavespec['qcFlagE'] = self.ncfile['qcFlagE'][self.wavedataindex]
-                    wavespec['qcFlagD'] = self.ncfile['qcFlagD'][self.wavedataindex]
-                    if spec is True:
-                        wavespec['dWED'] = self.ncfile['directionalWaveEnergyDensity'][self.wavedataindex, :, :]
-                        wavespec['fspec'] = self.ncfile['waveEnergyDensity'][self.wavedataindex, :]
-                        wavespec['units']['dWED'] = self.ncfile['directionalWaveEnergyDensity'].units
-                        wavespec['units']['fspec'] = self.ncfile['waveEnergyDensity'].units
-
-                        if wavespec['dWED'].ndim < 3:
-                            wavespec['dWED'] = np.expand_dims(wavespec['dWED'], axis=0)
-                            wavespec['fspec'] = np.expand_dims(wavespec['fspec'], axis=0)
+                    # now do directionalWaveGaugeList gauge try
+                    try:  # pull time specific data based on self.wavedataindex
+                        wavespec['depth'] = self.ncfile['nominalDepth'][:]  # this should always go with directional gauges
+                        wavespec['wavedirbin'] = self.ncfile['waveDirectionBins'][:]
+                        wavespec['qcFlagE'] = self.ncfile['qcFlagE'][self.wavedataindex]
+                        wavespec['qcFlagD'] = self.ncfile['qcFlagD'][self.wavedataindex]
+                        if spec is True:
+                            wavespec['dWED'] = self.ncfile['directionalWaveEnergyDensity'][self.wavedataindex, :, :]
+                            wavespec['fspec'] = self.ncfile['waveEnergyDensity'][self.wavedataindex, :]
                             wavespec['units']['dWED'] = self.ncfile['directionalWaveEnergyDensity'].units
                             wavespec['units']['fspec'] = self.ncfile['waveEnergyDensity'].units
 
-                    wavespec['waveDp'] = self.ncfile['wavePeakDirectionPeakFrequency'][self.wavedataindex]
-                    wavespec['waveDm'] = self.ncfile['waveMeanDirection'][self.wavedataindex]
-                    wavespec['Tm'] = self.ncfile['waveTm'][self.wavedataindex]
-                    wavespec['units']['waveDp'] = self.ncfile['wavePeakDirectionPeakFrequency'].units
-                    wavespec['units']['waveDm'] = self.ncfile['waveMeanDirection'].units
-                    wavespec['units']['Tm'] = self.ncfile['waveTm'].units
+                            if wavespec['dWED'].ndim < 3:
+                                wavespec['dWED'] = np.expand_dims(wavespec['dWED'], axis=0)
+                                wavespec['fspec'] = np.expand_dims(wavespec['fspec'], axis=0)
+                                wavespec['units']['dWED'] = self.ncfile['directionalWaveEnergyDensity'].units
+                                wavespec['units']['fspec'] = self.ncfile['waveEnergyDensity'].units
 
-                    if returnAB is True:
-                        wavespec['a1'] = self.ncfile['waveA1Value'][self.wavedataindex, :]
-                        wavespec['a2'] = self.ncfile['waveA2Value'][self.wavedataindex, :]
-                        wavespec['b1'] = self.ncfile['waveB1Value'][self.wavedataindex, :]
-                        wavespec['b2'] = self.ncfile['waveB2Value'][self.wavedataindex, :]
-                # this should throw when gauge is non directionalWaveGaugeList
-                except IndexError:  # if error its non-directional gauge
-                    # lidar guages don't have this variable.
-                    if 'nominalDepth' in self.ncfile.variables.keys():
-                        wavespec['depth'] = self.ncfile['nominalDepth'][:]  # non directional gauges
-                    else:
-                        # leave it blank if lidar wave gauge.
-                        wavespec['depth'] = np.nan
+                        wavespec['waveDp'] = self.ncfile['wavePeakDirectionPeakFrequency'][self.wavedataindex]
+                        wavespec['waveDm'] = self.ncfile['waveMeanDirection'][self.wavedataindex]
+                        wavespec['Tm'] = self.ncfile['waveTm'][self.wavedataindex]
+                        wavespec['units']['waveDp'] = self.ncfile['wavePeakDirectionPeakFrequency'].units
+                        wavespec['units']['waveDm'] = self.ncfile['waveMeanDirection'].units
+                        wavespec['units']['Tm'] = self.ncfile['waveTm'].units
 
-                    wavespec['wavedirbin'] = np.arange(0, 360, 90)  # 90 degree bins
-                    wavespec['waveDp'] = np.ones_like(self.wavedataindex) * -999
-                    try:
-                        wavespec['fspec'] = self.ncfile['waveEnergyDensity'][self.wavedataindex, :]
-                    except(RuntimeError):  # handle n-1 index error with Thredds
-                        wavespec['fspec'] = self.ncfile['waveEnergyDensity'][self.wavedataindex[:-1], :]
-                        wavespec['fspec'] = np.append(wavespec['fspec'],
-                                                      self.ncfile['waveEnergyDensity'][
-                                                      self.wavedataindex[-1], :][
-                                                      np.newaxis, :], axis=0)
-                    if wavespec['fspec'].ndim < 2:
-                        wavespec['fspec'] = np.expand_dims(wavespec['fspec'], axis=0)
+                        if returnAB is True:
+                            wavespec['a1'] = self.ncfile['waveA1Value'][self.wavedataindex, :]
+                            wavespec['a2'] = self.ncfile['waveA2Value'][self.wavedataindex, :]
+                            wavespec['b1'] = self.ncfile['waveB1Value'][self.wavedataindex, :]
+                            wavespec['b2'] = self.ncfile['waveB2Value'][self.wavedataindex, :]
+                    # this should throw when gauge is non directionalWaveGaugeList
+                    except IndexError:  # if error its non-directional gauge
+                        # lidar guages don't have this variable.
+                        if 'nominalDepth' in self.ncfile.variables.keys():
+                            wavespec['depth'] = self.ncfile['nominalDepth'][:]  # non directional gauges
+                        else:
+                            # leave it blank if lidar wave gauge.
+                            wavespec['depth'] = np.nan
 
-                    # multiply the freq spectra for all directions
-                    wavespec['dWED'] = np.ones([np.size(self.wavedataindex), np.size(wavespec['wavefreqbin']),
-                                                np.size(wavespec['wavedirbin'])])
-                    wavespec['dWED'] = wavespec['dWED']*wavespec['fspec'][:, :, np.newaxis]/len(wavespec['wavedirbin'])
-                    if 'qcFlagE' in self.ncfile.variables.keys():
-                        # lidar wave gauges don't have this variable.
-                        wavespec['qcFlagE'] = self.ncfile['qcFlagE'][self.wavedataindex]
-                    else:
-                        # lidar wave gauges have waterLevelQCFlag and spectralQCFlag
-                        wavespec['qcFlagE'] = self.ncfile['waterLevelQCFlag'][self.wavedataindex]
-                if removeBadDataFlag is not False:
-                    # Energy should not be needed
-                    try:
-                        # find data that are below bad data threshold
-                        idx = np.argwhere(wavespec['qcFlagD'] < removeBadDataFlag).squeeze()
-                        if np.size(idx) > 0:
-                            wavespec = sb.reduceDict(wavespec,
-                                                     idx)  # if there are values, keep good ones
-                        idx = np.argwhere(wavespec['qcFlagE'] < removeBadDataFlag).squeeze()
-                        if np.size(idx) > 0:
-                            wavespec = sb.reduceDict(wavespec, idx)
-                    except(KeyError):
-                        pass  # non -directional gauge
-                wavespec = removeDuplicatesFromDictionary(wavespec)
+                        wavespec['wavedirbin'] = np.arange(0, 360, 90)  # 90 degree bins
+                        wavespec['waveDp'] = np.ones_like(self.wavedataindex) * -999
+                        try:
+                            wavespec['fspec'] = self.ncfile['waveEnergyDensity'][self.wavedataindex, :]
+                        except(RuntimeError):  # handle n-1 index error with Thredds
+                            wavespec['fspec'] = self.ncfile['waveEnergyDensity'][self.wavedataindex[:-1], :]
+                            wavespec['fspec'] = np.append(wavespec['fspec'],
+                                                          self.ncfile['waveEnergyDensity'][
+                                                          self.wavedataindex[-1], :][
+                                                          np.newaxis, :], axis=0)
+                        if wavespec['fspec'].ndim < 2:
+                            wavespec['fspec'] = np.expand_dims(wavespec['fspec'], axis=0)
 
-                return wavespec
+                        # multiply the freq spectra for all directions
+                        wavespec['dWED'] = np.ones([np.size(self.wavedataindex), np.size(wavespec['wavefreqbin']),
+                                                    np.size(wavespec['wavedirbin'])])
+                        wavespec['dWED'] = wavespec['dWED']*wavespec['fspec'][:, :, np.newaxis]/len(wavespec['wavedirbin'])
+                        if 'qcFlagE' in self.ncfile.variables.keys():
+                            # lidar wave gauges don't have this variable.
+                            wavespec['qcFlagE'] = self.ncfile['qcFlagE'][self.wavedataindex]
+                        else:
+                            # lidar wave gauges have waterLevelQCFlag and spectralQCFlag
+                            wavespec['qcFlagE'] = self.ncfile['waterLevelQCFlag'][self.wavedataindex]
+                    if removeBadDataFlag is not False:
+                        # Energy should not be needed
+                        try:
+                            # find data that are below bad data threshold
+                            idx = np.argwhere(wavespec['qcFlagD'] < removeBadDataFlag).squeeze()
+                            if np.size(idx) > 0:
+                                wavespec = sb.reduceDict(wavespec,
+                                                         idx)  # if there are values, keep good ones
+                            idx = np.argwhere(wavespec['qcFlagE'] < removeBadDataFlag).squeeze()
+                            if np.size(idx) > 0:
+                                wavespec = sb.reduceDict(wavespec, idx)
+                        except(KeyError):
+                            pass  # non -directional gauge
+                    wavespec = removeDuplicatesFromDictionary(wavespec)
+                    wavespec_list.append(wavespec)
+            except (RuntimeError, AssertionError):
+                print('     ---- Problem Retrieving wave data from %s\n    - in this time period start: %s  End: %s' % (
+                        gaugename, self.d1, self.d2))
 
-        except (RuntimeError, AssertionError):
-            print('     ---- Problem Retrieving wave data from %s\n    - in this time period start: %s  End: %s' % (
-                    gaugenumber, self.d1, self.d2))
-
+        if single_gauge:
+            return wavespec_list[0]
+        else:
+            return wavespec_list
             """try:
                 wavespec = {'lat':  self.ncfile['latitude'][:],
                             'lon':  self.ncfile['longitude'][:],
@@ -475,6 +486,7 @@ class getObs:
 
         Args:
           gaugenumber: a string or number to get ocean currents from look up table
+          also can be a list of gaugenumbers/names
 
             gaugenumber = [2, 'awac-11m']
 
@@ -520,75 +532,86 @@ class getObs:
                 'meanP' (array): mean pressure
 
         """
-        assert gaugenumber.lower() in [2, 3, 4, 5, 6, 'awac-11m', 'awac-8m', 'awac-6m', 'awac-4.5m',
-                                       'adop-3.5m'], 'Input string/number is not a valid gage ' \
-                                                     'name/number'
-        
-        if gaugenumber in [2, 'awac-11m']:
-            # gname = 'AWAC04 - 11m'
-            self.dataloc = 'oceanography/currents/awac-11m/awac-11m.ncml'
-        elif gaugenumber in [3, 'awac-8m']:
-            # gname = 'AWAC 8m'
-            self.dataloc = 'oceanography/currents/awac-8m/awac-8m.ncml'
-        elif gaugenumber in [4, 'awac-6m']:
-            # gname = 'AWAC 6m'
-            self.dataloc = 'oceanography/currents/awac-6m/awac-6m.ncml'
-        elif gaugenumber in [5, 'awac-4.5m']:
-            # gname = 'AWAC 4.5m'
-            self.dataloc = 'oceanography/currents/awac-4.5m/awac-4.5m.ncml'
-        elif gaugenumber in [6, 'adop-3.5m']:
-            # gname = 'Aquadopp 3.5m'
-            self.dataloc = 'oceanography/currents/adop-3.5m/adop-3.5m.ncml'
+        # Making gauges flexible
+        single_gauge = False
+        if not isinstance(gaugenumber, list):
+            single_gauge = True
+            gaugenumber = [gaugenumber]
+        current_list = []
+        for i in range(len(gaugenumber)):
+            gaugename = gaugenumber[i]
+            assert gaugename.lower() in [2, 3, 4, 5, 6, 'awac-11m', 'awac-8m', 'awac-6m', 'awac-4.5m',
+                                           'adop-3.5m'], 'Input string/number is not a valid gage ' \
+                                                         'name/number'
+            if gaugename in [2, 'awac-11m']:
+                # gname = 'AWAC04 - 11m'
+                self.dataloc = 'oceanography/currents/awac-11m/awac-11m.ncml'
+            elif gaugename in [3, 'awac-8m']:
+                # gname = 'AWAC 8m'
+                self.dataloc = 'oceanography/currents/awac-8m/awac-8m.ncml'
+            elif gaugename in [4, 'awac-6m']:
+                # gname = 'AWAC 6m'
+                self.dataloc = 'oceanography/currents/awac-6m/awac-6m.ncml'
+            elif gaugename in [5, 'awac-4.5m']:
+                # gname = 'AWAC 4.5m'
+                self.dataloc = 'oceanography/currents/awac-4.5m/awac-4.5m.ncml'
+            elif gaugename in [6, 'adop-3.5m']:
+                # gname = 'Aquadopp 3.5m'
+                self.dataloc = 'oceanography/currents/adop-3.5m/adop-3.5m.ncml'
+            else:
+                raise NameError('Check gauge name')
+
+            self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
+                                               dtRound=roundto * 60)  # start=self.d1, end=self.d2) <
+            # -- needs to be tested
+            currdataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
+                                    epochEnd=self.epochd2)
+
+            # _______________________________________
+            # get the actual current data
+            if np.size(currdataindex) > 1:
+                curr_aveU = self.ncfile['aveE'][
+                    currdataindex]  # pulling depth averaged Eastward current
+                curr_aveV = self.ncfile['aveN'][
+                    currdataindex]  # pulling depth averaged Northward current
+                curr_spd = self.ncfile['currentSpeed'][currdataindex]  # currents speed [m/s]
+                curr_dir = self.ncfile['currentDirection'][
+                    currdataindex]  # current from direction [deg]
+                self.curr_time = nc.num2date(self.allEpoch[currdataindex], self.ncfile['time'].units,
+                                             self.ncfile['time'].calendar,
+                                             only_use_cftime_datetimes=False)
+                # for num in range(0, len(self.curr_time)):
+                #     self.curr_time[num] = self.roundtime(self.curr_time[num], roundto=roundto * 60)
+
+                curr_coords = gp.FRFcoord(self.ncfile['longitude'][0], self.ncfile['latitude'][0])
+
+                self.curpacket = {
+                    'name':      str(self.ncfile.title),
+                    'time':      self.curr_time,
+                    'epochtime': self.allEpoch[currdataindex],
+                    'aveU':      curr_aveU,
+                    'aveV':      curr_aveV,
+                    'speed':     curr_spd,
+                    'dir':       curr_dir,
+                    'lat':       self.ncfile['latitude'][0],
+                    'lon':       self.ncfile['longitude'][0],
+                    'xFRF':      curr_coords['xFRF'],
+                    'yFRF':      curr_coords['yFRF'],
+                    'depth':     self.ncfile['depth'][:],
+                    # Depth is calculated by: depth = -xducerD + blank + (binSize/2) + (numBins *
+                    # binSize)
+                    'meanP':     self.ncfile['meanPressure'][currdataindex]}
+                current_list.append(self.curpacket)
+            else:
+                print('ERROR: There is no current data for this time period at gauge: ', gaugename)
+                self.curpacket = None
+        if single_gauge:
+            try:
+                return current_list[0]
+            except:
+                return self.curpacket
         else:
-            raise NameError('Check gauge name')
-        
-        self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=roundto * 60)  # start=self.d1, end=self.d2) <
-        # -- needs to be tested
-        currdataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
-                                epochEnd=self.epochd2)
-        
-        # _______________________________________
-        # get the actual current data
-        if np.size(currdataindex) > 1:
-            curr_aveU = self.ncfile['aveE'][
-                currdataindex]  # pulling depth averaged Eastward current
-            curr_aveV = self.ncfile['aveN'][
-                currdataindex]  # pulling depth averaged Northward current
-            curr_spd = self.ncfile['currentSpeed'][currdataindex]  # currents speed [m/s]
-            curr_dir = self.ncfile['currentDirection'][
-                currdataindex]  # current from direction [deg]
-            self.curr_time = nc.num2date(self.allEpoch[currdataindex], self.ncfile['time'].units,
-                                         self.ncfile['time'].calendar,
-                                         only_use_cftime_datetimes=False)
-            # for num in range(0, len(self.curr_time)):
-            #     self.curr_time[num] = self.roundtime(self.curr_time[num], roundto=roundto * 60)
-            
-            curr_coords = gp.FRFcoord(self.ncfile['longitude'][0], self.ncfile['latitude'][0])
-            
-            self.curpacket = {
-                'name':      str(self.ncfile.title),
-                'time':      self.curr_time,
-                'epochtime': self.allEpoch[currdataindex],
-                'aveU':      curr_aveU,
-                'aveV':      curr_aveV,
-                'speed':     curr_spd,
-                'dir':       curr_dir,
-                'lat':       self.ncfile['latitude'][0],
-                'lon':       self.ncfile['longitude'][0],
-                'xFRF':      curr_coords['xFRF'],
-                'yFRF':      curr_coords['yFRF'],
-                'depth':     self.ncfile['depth'][:],
-                # Depth is calculated by: depth = -xducerD + blank + (binSize/2) + (numBins *
-                # binSize)
-                'meanP':     self.ncfile['meanPressure'][currdataindex]}
-            
-            return self.curpacket
-        
-        else:
-            print('ERROR: There is no current data for this time period at gauge: ', gaugenumber)
-            self.curpacket = None
-            return self.curpacket
+            return current_list
     
     def getWind(self, gaugenumber=0, collectionlength=10):
         """This function retrieves the wind data.
@@ -1355,8 +1378,6 @@ class getObs:
             self.dataloc = "oceanography/waves/lidarWaveGauge110/lidarWaveGauge110.ncml"
         elif str(gaugenumber).lower() in ['lidarwavegauge140']:
             self.dataloc = "oceanography/waves/lidarWaveGauge140/lidarWaveGauge140.ncml"
-
-
         else:
             self.gname = 'There Are no Gauge numbers here'
             raise NameError('Bad Gauge name, specify proper gauge name/number, or add capability')
