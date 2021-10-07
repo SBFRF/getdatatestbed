@@ -540,7 +540,6 @@ class getObs:
         current_list = []
         for i in range(len(gaugenumber)):
             gaugename = gaugenumber[i]
-            print(gaugename)
             assert gaugename.lower() in [2, 3, 4, 5, 6, 'awac-11m', 'awac-8m', 'awac-6m', 'awac-4.5m',
                                            'adop-3.5m'], 'Input string/number is not a valid gage ' \
                                                          'name/number'
