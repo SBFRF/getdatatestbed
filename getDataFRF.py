@@ -1324,7 +1324,6 @@ class getObs:
         elif str(gaugenumber).lower() in ['lidarwavegauge140']:
             self.dataloc = "oceanography/waves/lidarWaveGauge140/lidarWaveGauge140.ncml"
 
-
         else:
             self.gname = 'There Are no Gauge numbers here'
             raise NameError('Bad Gauge name, specify proper gauge name/number, or add capability')
