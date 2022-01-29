@@ -48,7 +48,7 @@ def gettime(allEpoch, epochStart, epochEnd, indexRef=0):
     finally:
         return idx
 
-def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000,**kwargs):
+def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000, **kwargs):
     """Function grabs the netCDF file interested.
     
     Responsible for drilling down to specific monthly file if applicable to speed things up.
@@ -95,6 +95,9 @@ def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000
     if callingClass == 'getDataTestBed':  # overwrite pName if calling for model data
         pName = u'cmtb'
 
+    if os.system("ping -c 1 " + THREDDSloc) ~= 0:
+        return ConnectionError(f"Not able to see {THREDDSloc))
+    
     # now set URL for netCDF file call,
     if start is None and end is None:
         ncfileURL = urljoin('[FillMismatch]'+THREDDSloc, pName, dataLoc)
@@ -245,7 +248,7 @@ class getObs:
         self._comp_time()
         assert type(self.d2) == DT.datetime, 'd1 need to be in python "Datetime" data types'
         assert type(self.d1) == DT.datetime, 'd2 need to be in python "Datetime" data types'
-    
+
     def _comp_time(self):
         """Test if times are backwards."""
         assert self.d2 >= self.d1, 'finish time: end needs to be after start time: start'
