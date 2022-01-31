@@ -932,7 +932,7 @@ class getObs:
         elif len(dataReturns) == 2:
             self.ncfile = dataReturns[0]
             self.allEpoch = dataReturns[1]
-            indexRef=[0]
+            indexRef=[0, len(self.ncfile['time'][:])]
         elif len(dataReturns) == 3:
             self.ncfile = dataReturns[0]
             self.allEpoch = dataReturns[1]
