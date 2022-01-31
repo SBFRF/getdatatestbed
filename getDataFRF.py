@@ -95,8 +95,8 @@ def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000
     if callingClass == 'getDataTestBed':  # overwrite pName if calling for model data
         pName = u'cmtb'
 
-    if os.system("ping -c 1 " + THREDDSloc) ~= 0:
-        return ConnectionError(f"Not able to see {THREDDSloc))
+    if os.system("ping -c 1 " + THREDDSloc) != 0:
+        return ConnectionError(f"Not able to see {THREDDSloc}")
     
     # now set URL for netCDF file call,
     if start is None and end is None:
@@ -877,7 +877,7 @@ class getObs:
                             'name': str(self.ncfile.title), }
             return wlpacket
     
-    def getBathyTransectFromNC(self, profilenumbers=None, method=1, forceReturnAll=False):
+    def getBathyTransectFromNC(self, profilenumbers=None, method=1, forceReturnAll=False, **kwargs):
         """This function gets the bathymetric data from the server.
 
         Args:
@@ -915,15 +915,24 @@ class getObs:
 
         """
         # do check here on profile numbers
+        fname = kwargs.get('fname', None)
+        
         # acceptableProfileNumbers = [None, ]
-        self.dataloc = 'geomorphology/elevationTransects/survey/surveyTransects.ncml'  # location
-        # of the gridded surveys
-        dataReturns = getnc(dataLoc=self.dataloc, callingClass=self.callingClass, server=self.server,
-                                           dtRound=1 * 60, epoch1=self.epochd1, epoch2=self.epochd2)
-        if len(dataReturns) == 2:
+        if fname is None:
+            self.dataloc = 'geomorphology/elevationTransects/survey/surveyTransects.ncml'  # location
+            # of the gridded surveys
+            dataReturns = getnc(dataLoc=self.dataloc, callingClass=self.callingClass, server=self.server,
+                                               dtRound=1 * 60, epoch1=self.epochd1, epoch2=self.epochd2)
+        else:  # mimic the returns from the get nc function with a specific file
+            ncfile = nc.Dataset(fname)  # open the pipe to the ncfile
+            dataReturns = (ncfile, sb.baseRound(ncfile['time'][:], 60))
+            
+        if dataReturns is None:
+            return None
+        elif len(dataReturns) == 2:
             self.ncfile = dataReturns[0]
             self.allEpoch = dataReturns[1]
-            indexRef=0
+            indexRef=[0]
         elif len(dataReturns) == 3:
             self.ncfile = dataReturns[0]
             self.allEpoch = dataReturns[1]
