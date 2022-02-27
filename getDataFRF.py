@@ -2129,6 +2129,8 @@ class getObs:
                 'lat':       self.ncfile['latitude'][ys, xs],
                 'lon':       self.ncfile['longitude'][ys,xs]
                 }
+        DEMdata['elevation_mean'] = np.nanmean(DEMdata['elevation'], axis=0)
+        DEMdata['elevation_var'] = np.nanvar(DEMdata['elevation'], axis=0)
         return DEMdata
     
     def getBathyRegionalDEM(self, utmEmin, utmEmax, utmNmin, utmNmax):
