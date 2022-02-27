@@ -95,9 +95,9 @@ def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000
     if callingClass == 'getDataTestBed':  # overwrite pName if calling for model data
         pName = u'cmtb'
 
-    if os.system("ping -c 1 " + THREDDSloc) != 0:
-        return ConnectionError(f"Not able to see {THREDDSloc}")
-    
+    # if os.system("ping -c 1 " + THREDDSloc) != 0:
+    #     return ConnectionError(f"Not able to see {THREDDSloc}")
+    #
     # now set URL for netCDF file call,
     if start is None and end is None:
         ncfileURL = urljoin('[FillMismatch]'+THREDDSloc, pName, dataLoc)
@@ -774,9 +774,11 @@ class getObs:
         self.WLdataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
                                    epochEnd=self.epochd2)
         
-        if np.size(self.WLdataindex) > 1:
+        if np.size(self.WLdataindex) >= 1 and (self.WLdataindex != None):
             self.WLtime = nc.num2date(self.allEpoch[self.WLdataindex], self.ncfile['time'].units,
                                       only_use_cftime_datetimes=False)
+            #  for singular WLtime indices, might need to increas the dimension so it makes the below lists/arrays of
+            #  size one, to keep downstream compatibility
             self.WLpacket = {
                 'name':        str(self.ncfile.title),
                 'WL':          self.ncfile['waterLevel'][self.WLdataindex],
@@ -789,8 +791,8 @@ class getObs:
                     }
             # this is faster to calculate myself, than pull from server
             self.WLpacket['residual'] = self.WLpacket['WL'] - self.WLpacket['predictedWL']
-        elif self.WLdataindex is not None and np.size(self.WLdataindex) == 1:
-            raise BaseException('you have 1 WL point, can the above be a >= logic or does 1 cause problems')
+        # elif self.WLdataindex is not None and np.size(self.WLdataindex) == 1:
+        #     raise BaseException('you have 1 WL point, can the above be a >= logic or does 1 cause problems')
         else:
             print('ERROR: there is no WATER level Data for this time period!!!')
             self.WLpacket = None
