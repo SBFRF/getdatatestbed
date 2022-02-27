@@ -2133,6 +2133,7 @@ class getObs:
             ys = slice(removeMinY, removeMaxY)
         else:
             ys = slice(None)
+
         
         DEMdata = {
                 'xFRF':      self.ncfile['xFRF'][xs],
@@ -2143,6 +2144,9 @@ class getObs:
                 'lat':       self.ncfile['latitude'][ys, xs],
                 'lon':       self.ncfile['longitude'][ys,xs]
                 }
+
+        DEMdata['elevation_mean'] = np.nanmean(DEMdata['elevation'], axis=0)
+        DEMdata['variance'] = np.nanvar(DEMdata['elevation'], axis=0)
         return DEMdata
     
     def getBathyRegionalDEM(self, utmEmin, utmEmax, utmNmin, utmNmax):
