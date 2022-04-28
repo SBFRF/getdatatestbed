@@ -2712,7 +2712,7 @@ class getDataTestBed:
         ####################################################################
         # go ahead and assign the ncfile first....
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=1 * 60, start=self.start, end=self.end)
+                                           dtRound=1 * 60, start=self.start, end=self.end, server=self.server)
         
         try:
             self.bathydataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
