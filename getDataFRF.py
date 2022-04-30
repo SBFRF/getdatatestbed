@@ -148,7 +148,7 @@ def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000
                 # now search across those times
                 if np.argwhere(temp > epoch1).any():
                     res1 = np.min([idx for idx, val in enumerate(temp) if val > epoch1]) - 1
-                    res2 = np.max([idx for idx, val in enumerate(temp) if val < epoch2]) + 1
+                    res2 = np.max([idx for idx, val in enumerate(temp) if val < epoch2])
                     indexRef = [idts[res1], idts[res2]]  # define a refined time window to return
                     allEpoch = ncFile['time'][idts[res1]:idts[res2]]
                 else:  # there is no relevant data in my window, take the last "cutrange" of values
@@ -915,11 +915,19 @@ class getObs:
         # acceptableProfileNumbers = [None, ]
         self.dataloc = 'geomorphology/elevationTransects/survey/surveyTransects.ncml'  # location
         # of the gridded surveys
-        self.ncfile, self.allEpoch, indexRef= getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=1 * 60,epoch1=self.epochd1,epoch2=self.epochd2)
+        dataReturns = getnc(dataLoc=self.dataloc, callingClass=self.callingClass, server=self.server,
+                                           dtRound=1 * 60, epoch1=self.epochd1, epoch2=self.epochd2)
+        if len(dataReturns) == 2:
+            self.ncfile = dataReturns[0]
+            self.allEpoch = dataReturns[1]
+            indexRef=0
+        elif len(dataReturns) == 3:
+            self.ncfile = dataReturns[0]
+            self.allEpoch = dataReturns[1]
+            indexRef = dataReturns[2]
         try:
             self.bathydataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
-                                          epochEnd=self.epochd2,indexRef=indexRef[0])
+                                          epochEnd=self.epochd2, indexRef=indexRef[0])
         except IOError:  # when data are not on CHL thredds
             self.bathydataindex = None
         # returning None object is convention and must be followed/handled down the line
@@ -934,25 +942,31 @@ class getObs:
                 indexRef[1] = self.ncfile['time'].shape[0]
         # logic to handle no transects in date range
         if forceReturnAll == True:
+            # return everything found in window
             idx = self.bathydataindex
         elif np.size(self.bathydataindex) == 1 and self.bathydataindex is not None:
+            # identifed single survey point that fits time window
             idx = self.bathydataindex
-        elif (np.size(self.bathydataindex) < 1 & method == 1) or (
+        elif ((np.size(self.bathydataindex) < 1) or (self.bathydataindex is None) & method == 1) or (
             self.bathydataindex is None and method == 1):
-            # there's no exact bathy match so find the max negative number where the negative
-            # numbers are historical and the max would be the closest historical
+            # there's no exact bathy match so find the closest in history
+            # find the max negative number where the negative numbers are historical and the max would be the
+            # closest historical
             temp = self.ncfile['time'][indexRef[0]:indexRef[1]]
             val = (max([n for n in (temp - self.epochd1) if n < 0]))
             idx = np.where((temp - self.epochd1) == val)[0][0] + indexRef[0]
-            # print 'Bathymetry is taken as closest in HISTORY - operational'
-        elif (np.size(self.bathydataindex) < 1 and method == 0) or (
+            
+        elif ((np.size(self.bathydataindex) < 1) or (self.bathydataindex is None) and method == 0) or (
             self.bathydataindex is None and method == 1):
+            # no exact bathy, find the closest in time
             temp = self.ncfile['time'][indexRef[0]:indexRef[1]]
-            idx = np.argmin(np.abs(temp - self.d1)) + indexRef[0]  # closest in time
-            # print 'Bathymetry is taken as closest in TIME - NON-operational'
+            idx = np.argmin(np.abs(temp - self.epochd1)) + indexRef[0]  # closest in time
+            
         elif np.size(self.bathydataindex) > 1:  # if dates fall into d1,d2 bounds,
             idx = self.bathydataindex[0]  # return a single index. this means there was a survey between d1,d2
-
+        else:
+            raise NotImplementedError("you've out thought me -- getdatatestbed.getDataFRF.getobs.getbathytransect")
+        
         if forceReturnAll is not True:
             # find the whole survey (via surveyNumber) and assign idx to return the whole survey
             idxSingle = idx
@@ -963,7 +977,7 @@ class getObs:
                 #print('The closest in history to your start date is %s\n' % nc.num2date(
                 #    self.gridTime[idx],
                 #    self.ncfile['time'].units))
-                raise NotImplementedError('empty index')
+                raise NotImplementedError('empty index: Could be transient server error')
                 idx = self.bathydataindex
         
         # else:
@@ -985,16 +999,7 @@ class getObs:
             idx2mask = np.in1d(self.ncfile['profileNumber'][idx],
                                profilenumbers)  # boolean true/false of time and profile number
             idx = idx[idx2mask]
-        # elif pd.Series(profileNumbers).isin(np.unique(self.cshore_ncfile['profileNumber'][
-        # :])).any(): #if only some
-        # of the profile numbers match
-        #     print 'One or more input profile numbers do not match those in the FRF transects!
-        #     Fetching data for
-        #     those that do.'
-        #     mask = (self.alltime >= self.start) & (self.alltime < self.end) & np.in1d(
-        #     self.cshore_ncfile[
-        #     'profileNumber'][:],profileNumbers)  # boolean true/false of time and profile number
-        
+
         # now retrieve data with idx
         if np.size(idx) > 0 and idx is not None:
             elevation_points = self.ncfile['elevation'][idx]
@@ -1355,7 +1360,6 @@ class getObs:
             self.dataloc = "oceanography/waves/lidarWaveGauge110/lidarWaveGauge110.ncml"
         elif str(gaugenumber).lower() in ['lidarwavegauge140']:
             self.dataloc = "oceanography/waves/lidarWaveGauge140/lidarWaveGauge140.ncml"
-
 
         else:
             self.gname = 'There Are no Gauge numbers here'
@@ -2845,7 +2849,7 @@ class getDataTestBed:
                     'lat':       lat,
                     'lon':       lon, }
         # then its a survey, get the survey number
-        if ('cBKF_T' not in kwargs) and ('cBKF' not in kwargs):
+        if 'surveyNumber' in self.ncfile.variables.keys():
             gridDict['surveyNumber'] = self.ncfile['surveyNumber'][idx]
         
         return gridDict
