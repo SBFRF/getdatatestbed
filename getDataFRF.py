@@ -48,7 +48,7 @@ def gettime(allEpoch, epochStart, epochEnd, indexRef=0):
     finally:
         return idx
 
-def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000,**kwargs):
+def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000, **kwargs):
     """Function grabs the netCDF file interested.
     
     Responsible for drilling down to specific monthly file if applicable to speed things up.
@@ -95,6 +95,9 @@ def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000
     if callingClass == 'getDataTestBed':  # overwrite pName if calling for model data
         pName = u'cmtb'
 
+    # if os.system("ping -c 1 " + THREDDSloc) != 0:
+    #     return ConnectionError(f"Not able to see {THREDDSloc}")
+    #
     # now set URL for netCDF file call,
     if start is None and end is None:
         ncfileURL = urljoin('[FillMismatch]'+THREDDSloc, pName, dataLoc)
@@ -245,7 +248,7 @@ class getObs:
         self._comp_time()
         assert type(self.d2) == DT.datetime, 'd1 need to be in python "Datetime" data types'
         assert type(self.d1) == DT.datetime, 'd2 need to be in python "Datetime" data types'
-    
+
     def _comp_time(self):
         """Test if times are backwards."""
         assert self.d2 >= self.d1, 'finish time: end needs to be after start time: start'
@@ -771,9 +774,11 @@ class getObs:
         self.WLdataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
                                    epochEnd=self.epochd2)
         
-        if np.size(self.WLdataindex) > 1:
+        if np.size(self.WLdataindex) >= 1 and (self.WLdataindex is not None):
             self.WLtime = nc.num2date(self.allEpoch[self.WLdataindex], self.ncfile['time'].units,
                                       only_use_cftime_datetimes=False)
+            #  for singular WLtime indices, might need to increas the dimension so it makes the below lists/arrays of
+            #  size one, to keep downstream compatibility
             self.WLpacket = {
                 'name':        str(self.ncfile.title),
                 'WL':          self.ncfile['waterLevel'][self.WLdataindex],
@@ -786,8 +791,8 @@ class getObs:
                     }
             # this is faster to calculate myself, than pull from server
             self.WLpacket['residual'] = self.WLpacket['WL'] - self.WLpacket['predictedWL']
-        elif self.WLdataindex is not None and np.size(self.WLdataindex) == 1:
-            raise BaseException('you have 1 WL point, can the above be a >= logic or does 1 cause problems')
+        # elif self.WLdataindex is not None and np.size(self.WLdataindex) == 1:
+        #     raise BaseException('you have 1 WL point, can the above be a >= logic or does 1 cause problems')
         else:
             print('ERROR: there is no WATER level Data for this time period!!!')
             self.WLpacket = None
@@ -874,7 +879,7 @@ class getObs:
                             'name': str(self.ncfile.title), }
             return wlpacket
     
-    def getBathyTransectFromNC(self, profilenumbers=None, method=1, forceReturnAll=False):
+    def getBathyTransectFromNC(self, profilenumbers=None, method=1, forceReturnAll=False, **kwargs):
         """This function gets the bathymetric data from the server.
 
         Args:
@@ -912,15 +917,24 @@ class getObs:
 
         """
         # do check here on profile numbers
+        fname = kwargs.get('fname', None)
+        
         # acceptableProfileNumbers = [None, ]
-        self.dataloc = 'geomorphology/elevationTransects/survey/surveyTransects.ncml'  # location
-        # of the gridded surveys
-        dataReturns = getnc(dataLoc=self.dataloc, callingClass=self.callingClass, server=self.server,
-                                           dtRound=1 * 60, epoch1=self.epochd1, epoch2=self.epochd2)
-        if len(dataReturns) == 2:
+        if fname is None:
+            self.dataloc = 'geomorphology/elevationTransects/survey/surveyTransects.ncml'  # location
+            # of the gridded surveys
+            dataReturns = getnc(dataLoc=self.dataloc, callingClass=self.callingClass, server=self.server,
+                                               dtRound=1 * 60, epoch1=self.epochd1, epoch2=self.epochd2)
+        else:  # mimic the returns from the get nc function with a specific file
+            ncfile = nc.Dataset(fname)  # open the pipe to the ncfile
+            dataReturns = (ncfile, sb.baseRound(ncfile['time'][:], 60))
+            
+        if dataReturns is None:
+            return None
+        elif len(dataReturns) == 2:
             self.ncfile = dataReturns[0]
             self.allEpoch = dataReturns[1]
-            indexRef=0
+            indexRef=[0, len(self.ncfile['time'][:])]
         elif len(dataReturns) == 3:
             self.ncfile = dataReturns[0]
             self.allEpoch = dataReturns[1]
@@ -2129,6 +2143,8 @@ class getObs:
                 'lat':       self.ncfile['latitude'][ys, xs],
                 'lon':       self.ncfile['longitude'][ys,xs]
                 }
+        DEMdata['elevation_mean'] = np.nanmean(DEMdata['elevation'], axis=0)
+        DEMdata['elevation_var'] = np.nanvar(DEMdata['elevation'], axis=0)
         return DEMdata
     
     def getBathyRegionalDEM(self, utmEmin, utmEmax, utmNmin, utmNmax):
