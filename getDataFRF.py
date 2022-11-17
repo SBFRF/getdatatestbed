@@ -774,7 +774,7 @@ class getObs:
         self.WLdataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
                                    epochEnd=self.epochd2)
         
-        if np.size(self.WLdataindex) >= 1 and (self.WLdataindex != None):
+        if np.size(self.WLdataindex) >= 1 and (self.WLdataindex is not None):
             self.WLtime = nc.num2date(self.allEpoch[self.WLdataindex], self.ncfile['time'].units,
                                       only_use_cftime_datetimes=False)
             #  for singular WLtime indices, might need to increas the dimension so it makes the below lists/arrays of
