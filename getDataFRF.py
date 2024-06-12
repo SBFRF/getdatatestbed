@@ -87,7 +87,7 @@ def getnc(dataLoc, callingClass, epoch1=0, epoch2=0, dtRound=60, cutrange=100000
             THREDDSloc = chlDataLoc
             pName = u'frf'
     except:
-        print('Could not aquire socket using CHLdata')
+        print('Could not acquire socket using CHLdata')
 
         THREDDSloc = chlDataLoc
         pName = u'frf'
@@ -2725,7 +2725,7 @@ class getDataTestBed:
         ####################################################################
         # go ahead and assign the ncfile first....
         self.ncfile, self.allEpoch = getnc(dataLoc=self.dataloc, callingClass=self.callingClass,
-                                           dtRound=1 * 60, start=self.start, end=self.end)
+                                           dtRound=1 * 60, start=self.start, end=self.end, server=self.server)
         
         try:
             self.bathydataindex = gettime(allEpoch=self.allEpoch, epochStart=self.epochd1,
@@ -2863,6 +2863,7 @@ class getDataTestBed:
                     'lon':       lon, }
         # then its a survey, get the survey number
         if 'surveyNumber' in self.ncfile.variables.keys():
+
             gridDict['surveyNumber'] = self.ncfile['surveyNumber'][idx]
         
         return gridDict
